@@ -29,7 +29,7 @@ _Analyze_              - In the Analysis step, insights and patterns are to be u
 _Share_                - Sharing an analysis on data-related jobs requires visualizing the data into an interpretable 
                          manner for presentation. Charts, Graphs, and tables will support logic taken to answer 
                          questions regarding our objective. 
-
+________________________________________________________________________________________________________________________________________________________
 
 There are a total of Six (6) questions that will be answered and supported by data. 
 
