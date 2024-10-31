@@ -1,5 +1,7 @@
 Group Name: The Trendsetters
+
 Contibutors: Vinh, Swikar, Reese, and Kelly
+
 Subject: Salary Dataset Analysis
 
 
