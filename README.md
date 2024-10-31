@@ -33,11 +33,11 @@ _Share_                - Sharing an analysis on data-related jobs requires visua
 
 There are a total of Six (6) questions that will be answered and supported by data. 
 
-Question #1 (insert name)-
+Question #1 (insert name)- Do specific sub-types of data-related jobs have higher or lower salaries than others?
 
-Question #2 (Reese)- 
+Question #2 (Reese)- What states have the highest paying data-related salaries ?
 
-Question #3 (insert name)- 
+Question #3 (insert name)- How do offered salaries compare to the prevailing wage ?
 
 Question #4 (Reese)-
 
