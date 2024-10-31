@@ -1,8 +1,8 @@
-Group Name: The Trendsetters
+**Group Name:** The Trendsetters
 
-Contibutors: Vinh, Swikar, Reese, and Kelly
+**Contributors:** Vinh, Swikar, Reese, and Kelly
 
-Subject: Salary Dataset Analysis
+**Subject:** Salary Dataset Analysis
 
 
 **OBJECTIVE** :          This Group Project Repo is where the group will conduct an in-depth exploration
