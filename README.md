@@ -1,6 +1,6 @@
 **Group Name:** The Trendsetters
 
-**Contributors:** Vinh, Swikar, Reese, and Kelly
+**Contributors:** Vinh, Swikar, Reese, Kelly, and Kshitij
 
 **Subject:** Salary Dataset Analysis
 
