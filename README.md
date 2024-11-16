@@ -48,6 +48,8 @@ Question #5 (Vinh)   - What specific sub-types require higher experience and edu
 
 Question #6 (Kelly)  - What salaries are "normal" when looking at a distribution of salaries. Is there any 
                        trends or patterns found within this salary distribution.
+
+Question #7 (Kshitij) - How does company size or industry influence salary levels for data-related roles?
                          
                          
 
