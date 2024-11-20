@@ -32,7 +32,7 @@ _Share_                - Sharing an analysis on data-related jobs requires visua
                          questions regarding our objective. 
 ________________________________________________________________________________________________________________________________________________________
 
-There are a total of Six (6) questions that will be answered and supported by data. 
+There are a total of Seven (7) questions that will be answered and supported by data. 
 
 Question #1 (Vinh)   - Do specific sub-types of data-related jobs have higher or lower salaries than others?
 
