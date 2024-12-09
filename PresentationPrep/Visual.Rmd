@@ -1,0 +1,86 @@
+---
+title: "Salary vs. Prevailing Wage Analysis"
+output: pdf_document
+---
+
+```{r}
+library(readxl)
+library(dplyr)
+library(ggplot2)
+library(knitr)
+
+file_path <- "/Users/swikar/Desktop/GroupProject/salary_work_in_progress/salary_data_states.xlsx"
+salary_data <- read_excel(file_path)
+salary_data <- salary_data %>%
+  mutate(
+    PAID_WAGE_PER_YEAR = as.numeric(gsub("[^0-9.]", "", PAID_WAGE_PER_YEAR)),
+    PREVAILING_WAGE_PER_YEAR = as.numeric(gsub("[^0-9.]", "", PREVAILING_WAGE_PER_YEAR))
+  )
+
+salary_data <- salary_data %>%
+  mutate(SALARY_DIFFERENCE = PAID_WAGE_PER_YEAR - PREVAILING_WAGE_PER_YEAR) %>%
+  group_by(JOB_TITLE_SUBGROUP) %>%
+  summarise(Avg_Salary_Diff = mean(SALARY_DIFFERENCE, na.rm = TRUE)) %>%
+  arrange(desc(Avg_Salary_Diff))
+
+kable(salary_data, caption = "Average Salary Difference by Job Subcategory")
+
+ggplot(salary_data, aes(x = reorder(JOB_TITLE_SUBGROUP, Avg_Salary_Diff), y = Avg_Salary_Diff)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  coord_flip() +
+  labs(title = "Average Salary Differences by Job Subcategory",
+       x = "Job Subcategory",
+       y = "Average Salary Difference ($)") +
+  theme_minimal()
+```
+\newpage
+```{r}
+colnames(salary_data)
+file_path <- "/Users/swikar/Desktop/GroupProject/salary_work_in_progress/salary_data_states.xlsx"
+salary_data <- read_excel(file_path)
+salary_data <- salary_data %>%
+  mutate(
+    PAID_WAGE_PER_YEAR = as.numeric(gsub("[^0-9.]", "", PAID_WAGE_PER_YEAR)),
+    PREVAILING_WAGE_PER_YEAR = as.numeric(gsub("[^0-9.]", "", PREVAILING_WAGE_PER_YEAR))
+  )
+
+sum(is.na(salary_data$PAID_WAGE_PER_YEAR))
+sum(is.na(salary_data$PREVAILING_WAGE_PER_YEAR))
+
+company_diff <- salary_data %>%
+  mutate(SALARY_DIFFERENCE = PAID_WAGE_PER_YEAR - PREVAILING_WAGE_PER_YEAR) %>%
+  group_by(EMPLOYER_NAME) %>%
+  summarise(Avg_Salary_Diff = mean(SALARY_DIFFERENCE, na.rm = TRUE)) %>%
+  arrange(desc(Avg_Salary_Diff))
+
+top_overpaying <- company_diff %>%
+  top_n(10, Avg_Salary_Diff)
+
+top_underpaying <- company_diff %>%
+  top_n(-10, Avg_Salary_Diff)
+
+kable(top_overpaying, caption = "Top 10 Companies That Overpay")
+kable(top_underpaying, caption = "Top 10 Companies That Underpay")
+
+ggplot(top_overpaying, aes(x = reorder(EMPLOYER_NAME, Avg_Salary_Diff), y = Avg_Salary_Diff)) +
+  geom_bar(stat = "identity", fill = "green") +
+  coord_flip() +
+  labs(title = "Top 10 Companies That Overpay",
+       x = "Employer Name",
+       y = "Average Salary Difference ($)") +
+  theme_minimal() +
+  theme(
+    axis.text.y = element_text(size = 8) # Adjust label size
+  )
+
+ggplot(top_underpaying, aes(x = reorder(EMPLOYER_NAME, Avg_Salary_Diff), y = Avg_Salary_Diff)) +
+  geom_bar(stat = "identity", fill = "red") +
+  coord_flip() +
+  labs(title = "Top 10 Companies That Underpay",
+       x = "Employer Name",
+       y = "Average Salary Difference ($)") +
+  theme_minimal() +
+  theme(
+    axis.text.y = element_text(size = 8) # Adjust label size
+  )
+```
