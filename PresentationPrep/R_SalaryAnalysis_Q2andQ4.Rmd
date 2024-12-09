@@ -1,0 +1,485 @@
+---
+title: "R_SalaryAnalysis"
+author: "Reese Watkins-Nelson"
+output: html_document
+date: "2024-12-09"
+---
+```{r}
+library(knitr)
+library(tidyr)
+library(dplyr)
+library(ggplot2)
+library(readxl)
+library(scales)
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+### Q2 Main and Q4
+
+# load dataset
+
+```{r}
+salary_df <- "GroupProject/salary_work_in_progress/salary_data_states.xlsx"
+project_data <- read_excel(salary_df)
+head(project_data)
+colnames(project_data)
+```
+
+# Specify the columns desired
+```{r}
+Focus_data <- project_data %>%
+  select( 
+    PAID_WAGE_PER_YEAR, 
+    WORK_STATE, 
+    WORK_STATE_ABBREVIATION, 
+    EXPERIENCE_REQUIRED_NUM_MONTHS, 
+    COLLEGE_MAJOR_REQUIRED, 
+    EDUCATION_LEVEL_REQUIRED, 
+    WORK_CITY,
+    JOB_TITLE_SUBGROUP
+  )
+head(Focus_data)
+```
+# Clean the data of missing values
+```{r}
+library(tidyr)
+clean_data <- Focus_data %>% 
+  mutate(across(everything(), ~ replace_na(., ifelse(is.numeric(.), 0, "Unknown"))))
+
+head(clean_data)
+```
+# create dictionary of regions
+```{r}
+state_to_region <- c(
+  "Connecticut" = "Northeast",
+  "Maine" = "Northeast",
+  "Massachusetts" = "Northeast",
+  "New Hampshire" = "Northeast",
+  "Rhode Island" = "Northeast",
+  "Vermont" = "Northeast",
+  "New Jersey" = "Northeast",
+  "New York" = "Northeast",
+  "Pennsylvania" = "Northeast",
+  
+  # Midwest
+  "Illinois" = "Midwest",
+  "Indiana" = "Midwest",
+  "Michigan" = "Midwest",
+  "Ohio" = "Midwest",
+  "Wisconsin" = "Midwest",
+  "Iowa" = "Midwest",
+  "Kansas" = "Midwest",
+  "Minnesota" = "Midwest",
+  "Missouri" = "Midwest",
+  "Nebraska" = "Midwest",
+  "North Dakota" = "Midwest",
+  "South Dakota" = "Midwest",
+  
+  # South
+  "Delaware" = "South",
+  "Florida" = "South",
+  "Georgia" = "South",
+  "Maryland" = "South",
+  "North Carolina" = "South",
+  "South Carolina" = "South",
+  "Virginia" = "South",
+  "District of Columbia" = "South",
+  "West Virginia" = "South",
+  "Alabama" = "South",
+  "Kentucky" = "South",
+  "Mississippi" = "South",
+  "Tennessee" = "South",
+  "Arkansas" = "South",
+  "Louisiana" = "South",
+  "Oklahoma" = "South",
+  "Texas" = "South",
+  
+  # West
+  "Alaska" = "West",
+  "California" = "West",
+  "Hawaii" = "West",
+  "Oregon" = "West",
+  "Washington" = "West",
+  "Arizona" = "West",
+  "Colorado" = "West",
+  "Idaho" = "West",
+  "Montana" = "West",
+  "Nevada" = "West",
+  "New Mexico" = "West",
+  "Utah" = "West",
+  "Wyoming" = "West")
+```
+# clean up data
+```{r}
+state_data <- clean_data %>%
+  mutate(Region = state_to_region[WORK_STATE]) %>%
+  mutate(Region = ifelse(is.na(Region), "Unknown", Region))
+state_data <- na.omit(state_data)
+
+clean_data$Salary_Bin <- cut(clean_data$PAID_WAGE_PER_YEAR, 
+                             breaks = seq(0, 500000, by = 20000), 
+                             include.lowest = TRUE, 
+                             right = FALSE,
+                             labels = paste0("$", seq(0, 480000, by = 20000), "-", seq(20000, 500000, by = 20000)))
+
+clean_data <- clean_data %>% filter(!is.na(PAID_WAGE_PER_YEAR) & PAID_WAGE_PER_YEAR <= 500000)
+
+state_data <- state_data %>%
+  mutate(Salary_Bin = cut(
+    PAID_WAGE_PER_YEAR,
+    breaks = c(seq(0, 200000, by = 20000), Inf),
+    labels = c("0-20k", "20k-40k", "40k-60k", "60k-80k", "80k-100k", 
+               "100k-120k", "120k-140k", "140k-160k", "160k-180k", 
+               "180k-200k", "200k +"),  
+    include.lowest = TRUE
+  ))
+
+```
+# histogram of regional salaries (Q4)
+```{r}
+
+filtered_data <- state_data %>%
+  filter(Region %in% c("West", "South", "Northeast", "Midwest"))
+
+ggplot(filtered_data, aes(x = Salary_Bin, fill = Region)) +
+  geom_bar(position = "stack", show.legend = TRUE) +  
+  labs(
+    title = "Composition of Salaries by Region for Each Job Subtype",
+    x = "Salary Range",
+    y = "Frequency",
+    fill = "Region" 
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1), 
+    axis.title.x = element_text(size = 14),
+    axis.title.y = element_text(size = 14),
+    legend.title = element_text(size = 14),
+    legend.text = element_text(size = 12),
+    strip.text = element_text(size = 12, face = "bold"),  
+    legend.position = "bottom"
+  ) +
+  scale_fill_brewer(palette = "Set2") +  
+  facet_wrap(~ JOB_TITLE_SUBGROUP, scales = "free_y")
+
+```
+
+
+# Filtering
+```{r}
+average_salary_per_state <- state_data %>%
+  group_by(WORK_STATE, Region) %>%
+  summarize(
+    Average_Salary = mean(PAID_WAGE_PER_YEAR, na.rm = TRUE),
+    .groups = "drop")
+filtered_data <- average_salary_per_state %>%
+  filter(Region %in% c("West", "South", "Northeast", "Midwest"))
+
+top_10_states <- filtered_data %>%
+  slice_max(Average_Salary, n = 10)
+```
+# Visualization for top 10 states
+```{r}
+ggplot(top_10_states, aes(x = reorder(WORK_STATE, Average_Salary), y = Average_Salary, fill = Region)) +
+  geom_bar(stat = "identity", show.legend = TRUE) +
+  labs(
+    title = "Top 10 States by Average Salary Grouped by Region",
+    x = "State",
+    y = "Average Salary"
+  ) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1.0, size = 10),
+    axis.ticks.x = element_blank(),
+    plot.margin = margin(1, 1, 1, 3, "cm")
+  ) +
+  scale_fill_brewer(palette = "Set3") + 
+  scale_y_continuous(labels = scales::label_dollar())
+
+```
+
+### Q2_A
+
+```{r}
+
+# Create Histogram
+
+ggplot(state_data, aes(x = PAID_WAGE_PER_YEAR, fill = JOB_TITLE_SUBGROUP)) +
+  geom_histogram(binwidth = 10000, color = "black", show.legend = TRUE) +  
+  labs(
+    title = "Histogram of Salaries Per Job Subgroup",
+    x = "Salary",
+    y = "Frequency",
+    fill = "Job Subgroup" 
+  ) +
+  scale_fill_brewer(palette = "Set3") +
+  coord_cartesian(xlim = c(0, 200000)) +
+  scale_x_continuous(labels = scales::label_dollar()) + 
+  theme_minimal() +
+  theme(
+    legend.position = "bottom",  
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 14),
+    axis.text.y = element_text(hjust =1, size = 14)
+  )
+
+```
+
+# Break apart by job subtype (Q2_A, pt II)
+
+```{r}
+ggplot(state_data, aes(x = PAID_WAGE_PER_YEAR, fill = JOB_TITLE_SUBGROUP)) +
+  geom_histogram(binwidth = 10000, color = "black", show.legend = FALSE) +  
+  labs(
+    title = "Histogram of Salaries by Job Subgroup",
+    x = "Salary",
+    y = "Frequency"
+  ) +
+  scale_fill_brewer(palette = "Set3") +
+  coord_cartesian(xlim = c(0, 200000)) +
+  scale_x_continuous(labels = scales::label_dollar()) + 
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 10),
+    axis.text.y = element_text(size = 10),
+    strip.text = element_text(size = 12, face = "bold"), 
+    plot.title = element_text(size = 16, face = "bold", hjust = 0.5)
+  ) +
+  facet_wrap(~ JOB_TITLE_SUBGROUP, scales = "free_y")
+
+ggsave("Q2_A_pt2_Final.jpeg",width = 14, height = 6)
+
+```
+
+### Q2_B
+
+```{r}
+salary_df <- "GroupProject/salary_work_in_progress/salary_data_states.xlsx"
+project_data <- read_excel(salary_df)
+head(project_data)
+colnames(project_data)
+
+Focus_data <- project_data %>%
+  select( 
+    PAID_WAGE_PER_YEAR, 
+    WORK_STATE, 
+    WORK_STATE_ABBREVIATION, 
+    EXPERIENCE_REQUIRED_NUM_MONTHS, 
+    COLLEGE_MAJOR_REQUIRED, 
+    EDUCATION_LEVEL_REQUIRED, 
+    WORK_CITY,
+    JOB_TITLE_SUBGROUP,
+    EMPLOYER_NAME
+    
+  )
+head(Focus_data)
+
+clean_data <- Focus_data %>% 
+  mutate(across(everything(), ~ replace_na(., ifelse(is.numeric(.), 0, "Unknown"))))
+
+head(clean_data)
+
+state_to_region <- c(
+  "Connecticut" = "Northeast",
+  "Maine" = "Northeast",
+  "Massachusetts" = "Northeast",
+  "New Hampshire" = "Northeast",
+  "Rhode Island" = "Northeast",
+  "Vermont" = "Northeast",
+  "New Jersey" = "Northeast",
+  "New York" = "Northeast",
+  "Pennsylvania" = "Northeast",
+  
+  # Midwest
+  "Illinois" = "Midwest",
+  "Indiana" = "Midwest",
+  "Michigan" = "Midwest",
+  "Ohio" = "Midwest",
+  "Wisconsin" = "Midwest",
+  "Iowa" = "Midwest",
+  "Kansas" = "Midwest",
+  "Minnesota" = "Midwest",
+  "Missouri" = "Midwest",
+  "Nebraska" = "Midwest",
+  "North Dakota" = "Midwest",
+  "South Dakota" = "Midwest",
+  
+  # South
+  "Delaware" = "South",
+  "Florida" = "South",
+  "Georgia" = "South",
+  "Maryland" = "South",
+  "North Carolina" = "South",
+  "South Carolina" = "South",
+  "Virginia" = "South",
+  "District of Columbia" = "South",
+  "West Virginia" = "South",
+  "Alabama" = "South",
+  "Kentucky" = "South",
+  "Mississippi" = "South",
+  "Tennessee" = "South",
+  "Arkansas" = "South",
+  "Louisiana" = "South",
+  "Oklahoma" = "South",
+  "Texas" = "South",
+  
+  # West
+  "Alaska" = "West",
+  "California" = "West",
+  "Hawaii" = "West",
+  "Oregon" = "West",
+  "Washington" = "West",
+  "Arizona" = "West",
+  "Colorado" = "West",
+  "Idaho" = "West",
+  "Montana" = "West",
+  "Nevada" = "West",
+  "New Mexico" = "West",
+  "Utah" = "West",
+  "Wyoming" = "West")
+```
+
+# cleaning data 
+
+```{r}
+state_data <- clean_data %>%
+  mutate(Region = state_to_region[WORK_STATE]) %>%
+  mutate(Region = ifelse(is.na(Region), "Unknown", Region))
+state_data <- na.omit(state_data)
+
+clean_data$Salary_Bin <- cut(clean_data$PAID_WAGE_PER_YEAR, 
+                             breaks = seq(0, 500000, by = 20000), 
+                             include.lowest = TRUE, 
+                             right = FALSE,
+                             labels = paste0("$", seq(0, 480000, by = 20000), "-", seq(20000, 500000, by = 20000)))
+
+clean_data <- clean_data %>% filter(!is.na(PAID_WAGE_PER_YEAR) & PAID_WAGE_PER_YEAR <= 500000)
+
+```
+
+# Visualization
+
+```{r}
+average_salary_per_company <- clean_data %>%  
+  group_by(JOB_TITLE_SUBGROUP, EMPLOYER_NAME, WORK_STATE) %>%
+  summarize(average_salary = mean(PAID_WAGE_PER_YEAR, na.rm = TRUE), .groups = "drop") %>%
+  arrange(JOB_TITLE_SUBGROUP, desc(average_salary))
+
+top_5_companies <- average_salary_per_company %>%
+  group_by(JOB_TITLE_SUBGROUP) %>%
+  slice_head(n = 5) %>%
+  ungroup()
+
+top_5_companies <- top_5_companies %>%
+  mutate(EMPLOYER_LABEL = paste0(EMPLOYER_NAME, ", (", WORK_STATE, ")"))
+
+average_salary_per_company <- clean_data %>%  
+  group_by(JOB_TITLE_SUBGROUP, EMPLOYER_NAME, WORK_STATE) %>%
+  summarize(average_salary = mean(PAID_WAGE_PER_YEAR, na.rm = TRUE), .groups = "drop") %>%
+  arrange(JOB_TITLE_SUBGROUP, desc(average_salary))
+
+top_5_companies <- average_salary_per_company %>%
+  group_by(JOB_TITLE_SUBGROUP) %>%
+  slice_head(n = 5) %>%
+  ungroup()
+
+top_5_companies <- top_5_companies %>%
+  mutate(EMPLOYER_LABEL = paste0(EMPLOYER_NAME, ", (", WORK_STATE, ")"))
+
+ggplot(top_5_companies, aes(x = average_salary, y = reorder(EMPLOYER_LABEL, average_salary), color = JOB_TITLE_SUBGROUP)) +
+  geom_point(size = 3) +
+  facet_wrap(
+    ~ JOB_TITLE_SUBGROUP,
+    scales = "free_y",  
+    ncol = 2  
+  ) +
+  labs(
+    title = "Top 5 Companies per Job Subgroup grouped by state",
+    x = "Average Salary",
+    y = "Employer Name (State)",
+    color = "Job Title Subgroup"
+  ) +
+  theme_minimal() +
+  theme(
+    strip.text = element_text(size = 8, face = "bold"), 
+    axis.text.y = element_text(size = 6),  
+    axis.text.x = element_text(size = 8, angle = 45, hjust = 1),  
+    legend.position = "bottom",
+    plot.title = element_text(size = 14, face = "bold", hjust = 0.5)  
+  ) +
+  scale_x_continuous(
+    limits = c(0, max(top_5_companies$average_salary, na.rm = TRUE)),  
+    breaks = seq(0, max(top_5_companies$average_salary, na.rm = TRUE), by = 50000),  
+    labels = scales::dollar_format()
+  )
+```
+
+### Q2_C
+
+# Import Kaggle Dataset
+```{r}
+CoL_df <- "GroupProject/salary_work_in_progress/extract_folder/Cost_of_living_Missouri_Economic_Research_and_Information_Center.csv"
+CoL_data <- read.csv(CoL_df)
+head(CoL_data)
+colnames(CoL_data)
+```
+
+# Join both data sets
+```{r}
+state_data <- Focus_data %>%
+  mutate(Region = state_to_region[WORK_STATE]) %>%
+  mutate(Region = ifelse(is.na(Region), "Unknown", Region))
+state_data <- na.omit(state_data)
+
+CoL_data <- CoL_data %>%
+  rename(WORK_STATE_ABBREVIATION = State)
+
+merge_data <- state_data %>%
+  inner_join(CoL_data, by = "WORK_STATE_ABBREVIATION")
+
+adjusted_data <- merge_data %>%
+  mutate(
+    Adjusted_Salary_Conversion = (PAID_WAGE_PER_YEAR / Conversion)*100)
+
+```
+# Tabulation
+```{r}
+state_avg_salaries <- adjusted_data %>%
+  group_by(WORK_STATE_ABBREVIATION, Region) %>%
+  summarize(
+    Avg_Adjusted_Salary = mean(Adjusted_Salary_Conversion, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+head(state_avg_salaries)
+
+
+top_10_avg_salaries <- state_avg_salaries %>%
+  slice_max(Avg_Adjusted_Salary, n = 10)
+```
+# Visualization
+```{r}
+ggplot(top_10_avg_salaries, aes(x = reorder(WORK_STATE_ABBREVIATION, Avg_Adjusted_Salary), y = Avg_Adjusted_Salary, fill = Region)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  coord_cartesian(ylim = c(0, 200000)) +  
+  scale_y_continuous(labels = scales::label_dollar()) +  
+  scale_fill_brewer(palette = "Set3") +  
+  labs(
+    title = "Average Adjusted Salary by State and Region",
+    x = "State",
+    y = "Average Adjusted Salary",
+    fill = "Region"
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, size = 10),  
+    axis.title.x = element_text(size = 12),
+    axis.title.y = element_text(size = 12),
+    legend.title = element_text(size = 12),
+    legend.position = "bottom")
+```
+
+
+
